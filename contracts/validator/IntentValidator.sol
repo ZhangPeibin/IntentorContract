@@ -36,6 +36,8 @@ contract IntentValidator is Ownable {
         console.log("Amount: %s", intentReq.amount);
         console.log("Chain ID: %s", intentReq.chainId);
 
+        require(chainToExecutor[intentReq.chainId] != address(0), "No validator set for this chain");
+
         address fromTokenAddress = intentReq.fromToken;
         if (fromTokenAddress == address(0)) {
             if (msg.sender.balance < intentReq.amount) {
@@ -43,14 +45,25 @@ contract IntentValidator is Ownable {
             }
         } else {
             IERC20 fromToken = IERC20(fromTokenAddress);
-            if (fromToken.balanceOf(msg.sender) < intentReq.amount) {
+            IERC20Metadata fromTokenMetadata = IERC20Metadata(fromTokenAddress);
+
+            uint8 decimals = fromTokenMetadata.decimals();
+            console.log("From Token Decimals: %s", decimals);
+            uint256 amountInWei = intentReq.amount * (10 ** decimals);
+
+            console.log("Amount in Wei: %s", amountInWei);
+            console.log(
+                "From Token Balance: %s",
+                fromToken.balanceOf(msg.sender)
+            );
+            if (fromToken.balanceOf(msg.sender) < amountInWei) {
                 return (false, ValidationResult.INSUFFICIENT_BALANCE);
             }
-
-            IERC20Metadata fromTokenMetadata = IERC20Metadata(fromTokenAddress);
-            uint8 decimals = fromTokenMetadata.decimals();
-            uint256 amountInWei = intentReq.amount * (10 ** decimals);
-            uint256 allowance = fromToken.allowance(msg.sender, address(this));
+            console.log("Checking allowance for From Token",fromTokenAddress);
+            console.log('from',msg.sender, "to", chainToExecutor[intentReq.chainId]);
+            // Check if the allowance is sufficient
+            uint256 allowance = fromToken.allowance(msg.sender, chainToExecutor[intentReq.chainId]);
+            console.log("From Token Allowance: %s", allowance);
             if (allowance < amountInWei) {
                 return (false, ValidationResult.ALLOWANCE_NOT_ENOUGH);
             }
@@ -66,9 +79,7 @@ contract IntentValidator is Ownable {
         _setChainWithExecutor(chainId, validatorAddress);
     }
 
-    function getExecutor(
-        uint256 chainId
-    ) external view returns (address) {
+    function getExecutor(uint256 chainId) external view returns (address) {
         address validatorAddress = chainToExecutor[chainId];
         require(
             validatorAddress != address(0),
@@ -90,8 +101,7 @@ contract IntentValidator is Ownable {
         }
     }
 
-
-     function _setChainWithExecutor(
+    function _setChainWithExecutor(
         uint256 chainId,
         address validatorAddress
     ) internal onlyOwner {

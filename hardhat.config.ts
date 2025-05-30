@@ -9,10 +9,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      forking: {
-        url: "https://opbnb.drpc.org",
-      },
-      chainId: 204
+  
     },
     bsc: {
       url: 'https://binance.llamarpc.com',
