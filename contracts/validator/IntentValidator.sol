@@ -6,13 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "hardhat/console.sol";
 import "../interfaces/IIntentRequest.sol";
+import "./IIntentValidator.sol";
 
-contract IntentValidator is Ownable {
-    enum ValidationResult {
-        INSUFFICIENT_BALANCE,
-        ALLOWANCE_NOT_ENOUGH,
-        NONE
-    }
+contract IntentValidator is Ownable , IIntentValidator {
 
     mapping(uint256 => address) public chainToExecutor;
 
@@ -27,7 +23,7 @@ contract IntentValidator is Ownable {
      */
     function validate(
         IIntentRequest.IntentReq memory intentReq
-    ) public view returns (bool success, ValidationResult result) {
+    ) public view override returns (bool success, ValidationResult result) {
         console.log("Validating intent request:");
         console.log("Intent: %s", intentReq.intent);
         console.log("Platform: %s", intentReq.platform);
