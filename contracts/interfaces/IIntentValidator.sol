@@ -10,6 +10,11 @@ interface IIntentValidator {
         NONE
     }
 
+    event AdminUpdated(address indexed previousAdmin, address indexed newAdmin);
+    event AiExecutorUpdated(address indexed previousExecutor, address indexed newExecutor);
+
+
+    function aiExecutor() external view returns (address);
     /**
      * @dev Validates the intent request.
      * @param intentReq The intent request to validate.

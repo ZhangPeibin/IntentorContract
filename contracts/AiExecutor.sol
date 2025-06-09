@@ -2,31 +2,25 @@
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IIntentRequest.sol";
-import "./validator/IIntentValidator.sol";
-import "./fee/IFee.sol";
-import {SafeTransferLib} from "./lib/SafeTransferLib.sol"; // Ensure SafeTransferLib is imported correctly
+import "./interfaces/IIntentValidator.sol";
+import "./interfaces/IFee.sol";
+import "./interfaces/IAiExecutor.sol";
+import "./lib/TransferHelper.sol"; // Ensure SafeTransferLib is imported correctly
 // Ensure IntentReq is imported or defined
 // If IIntentRequest.sol defines IntentReq, this import is sufficient.
 // Otherwise, define the struct here or correct the import.
 
-contract AiExecutor is OwnableUpgradeable {
+contract AiExecutor is OwnableUpgradeable ,ReentrancyGuardUpgradeable ,IAiExecutor  {
 
-    using SafeTransferLib for address;
-    using SafeTransferLib for IERC20;
 
-    IIntentValidator public aiValidator;
-    IFee public fee;
+    IIntentValidator public override aiValidator;
+    IFee public override fee;
 
     mapping(uint256 => address) public chainToRouter;
 
-    event AdminUpdated(address indexed previousAdmin, address indexed newAdmin);
-    event ExecuteValidateFailed(
-        address indexed executor,
-        IIntentRequest.IntentReq intentReq,
-        IIntentValidator.ValidationResult result
-    );
     constructor() {
         _disableInitializers();
     }
@@ -41,16 +35,19 @@ contract AiExecutor is OwnableUpgradeable {
         require(_fee != address(0), "Invalid fee address");
         require(_aiValidator != address(0), "Invalid AI validator address");
         aiValidator = IIntentValidator(_aiValidator);
+        emit AiValidatorUpdated(address(0), _aiValidator);
         fee = IFee(_fee);
+        emit FeeUpdated(address(0), _fee);
     }
 
     function execute(
         IIntentRequest.IntentReq memory intentReq,
         address receiver
-    ) external payable returns (bytes memory) {
-        //
+    ) external payable nonReentrant returns (bytes memory) {
+        
         require(intentReq.chainId == block.chainid, "Invalid chain ID");
 
+        // Validate user balance and allowance
         (bool success,IIntentValidator.ValidationResult result) = aiValidator.validate(intentReq);
         if(!success) {
             emit ExecuteValidateFailed(
@@ -62,16 +59,20 @@ contract AiExecutor is OwnableUpgradeable {
         }   
 
         //collect fee
-        uint256 feeAmount = fee.collectFee(intentReq.fromToken, intentReq.amount);
-        address feeRecipient = fee.getFeeRecipient();
+        uint256 feeAmount = fee.collectFee(msg.sender,intentReq.fromToken, intentReq.amount);
+        address feeRecipient = fee.feeRecipient();
         require(feeRecipient != address(0), "Fee recipient not set");
         if(intentReq.fromToken == address(0)) {
             require(msg.value >= feeAmount, "Insufficient fee amount sent");
-            feeRecipient.safeTransferETH(feeAmount);
+            TransferHelper.safeTransferETH(feeRecipient, feeAmount);
         } else {
-            IERC20 fromToken = IERC20(intentReq.fromToken);
-            fromToken.safeTransferFrom(msg.sender, address(this), intentReq.amount);
-            fromToken.safeTransfer(feeRecipient, feeAmount);
+            TransferHelper.safeTransferFrom(
+                intentReq.fromToken,
+                msg.sender,
+                address(this),
+                intentReq.amount
+            );
+            TransferHelper.safeTransfer(intentReq.fromToken, feeRecipient, feeAmount);
         }   
 
         // Execute the intent
