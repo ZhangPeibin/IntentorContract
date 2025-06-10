@@ -1,8 +1,6 @@
 import { ethers } from "hardhat";
 import axios from "axios";
 import * as dotenv from "dotenv";
-import { int } from "hardhat/internal/core/params/argumentTypes";
-import { mock } from "../typechain-types/contracts";
 dotenv.config();
 
 const VERIFY_API = process.env.VERIFY_API || 'http://localhost:3000/api/verify';
@@ -60,7 +58,6 @@ async function main() {
   intent.toToken = mockUSDT.target;
 
   const validator = await ethers.deployContract('IntentValidator', [admin.address]);
-  await validator.connect(admin)["setChainWithExecutor(uint256,address)"](intent.chainId, deployer.address);
   
   //mint token
   await mockUSDT.connect(user).mint();

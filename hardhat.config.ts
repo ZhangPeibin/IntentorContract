@@ -4,17 +4,20 @@ import "@nomicfoundation/hardhat-toolbox";
 const PRIVATE_KEY = vars.get('TEST_PK')
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
-   mocha: {
-    timeout: 100000000
+
+  mocha: {
+    timeout: 100000000,
+ 
   },
   networks: {
     hardhat: {
-  
+
     },
     bsc: {
-      url: 'https://binance.llamarpc.com',
+      url: 'https://bsc.blockrazor.xyz',
       accounts: [PRIVATE_KEY],
     },
+    
   },
 };
 

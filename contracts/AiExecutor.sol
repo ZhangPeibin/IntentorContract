@@ -8,16 +8,15 @@ import "./interfaces/IIntentRequest.sol";
 import "./interfaces/IIntentValidator.sol";
 import "./interfaces/IFee.sol";
 import "./interfaces/IAiExecutor.sol";
-import "./lib/TransferHelper.sol"; // Ensure SafeTransferLib is imported correctly
-// Ensure IntentReq is imported or defined
-// If IIntentRequest.sol defines IntentReq, this import is sufficient.
-// Otherwise, define the struct here or correct the import.
+import "./lib/TransferHelper.sol"; 
+import "./interfaces/IDex.sol";
 
 contract AiExecutor is OwnableUpgradeable ,ReentrancyGuardUpgradeable ,IAiExecutor  {
 
 
     IIntentValidator public override aiValidator;
     IFee public override fee;
+    IDex public dex;
 
     mapping(uint256 => address) public chainToRouter;
 
@@ -74,7 +73,7 @@ contract AiExecutor is OwnableUpgradeable ,ReentrancyGuardUpgradeable ,IAiExecut
             );
             TransferHelper.safeTransfer(intentReq.fromToken, feeRecipient, feeAmount);
         }   
-
+        // Update user nonce
         // Execute the intent
         return "";
     }

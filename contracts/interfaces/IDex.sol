@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
 interface IDex {
@@ -10,19 +10,27 @@ interface IDex {
         uint256 amountOut
     );
 
-    function router() external view returns (address);
-    function weth() external view returns (address);
+    event SwapWhitelistUpdated(
+        address indexed account,
+        bool status
+    );
+
+    event RouterUpdated(
+        address indexed oldRouter,
+        address indexed newRouter
+    );
+
+    event WethUpdated(
+        address indexed oldWeth,
+        address indexed newWeth
+    );
+
 
     function swap(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
+        uint256 amountOutMinimum,
         bool exactInput
-    ) external payable returns (uint256 amountOut);
-
-    function _swapETHForTokens(
-        address tokenOut,
-        uint256 amountOutMin
-    ) external payable returns (uint256 amountOut);
-
+    ) external returns (uint256 amountOut);
 }

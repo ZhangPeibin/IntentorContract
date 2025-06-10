@@ -21,19 +21,6 @@ describe('IntentValidator', () => {
         const owner = await IntentValidator.owner();
         expect(owner).to.equal(deployer.address);
     });
-    it("should set validator correctly", async () => {
-        const { IntentValidator, deployer } = await loadFixture(deoployIntentValidator);
-        await IntentValidator["setChainWithExecutor(uint256[],address[])"]([1], [deployer.address]);
-        const executors = await IntentValidator.getExecutor(1);
-        expect(executors).to.equal(deployer.address);
-    });
-
-    it("should revert when setting executor for non-existent chain", async () => {
-        const { IntentValidator } = await loadFixture(deoployIntentValidator);
-        await expect(IntentValidator["setChainWithExecutor(uint256[],address[])"]([999], [ethers.ZeroAddress]))
-            .to.be.revertedWith("Validator address cannot be zero");
-    });
-
 
     it('should validate intent correctly swap eth to any', async () => {
         const { IntentValidator } = await loadFixture(deoployIntentValidator);
