@@ -1,18 +1,27 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./IIntentValidator.sol";
+import "./IIntentRequest.sol";
 import "./IFee.sol";
 interface IAiExecutor {
+    
+    enum ValidationResult {
+        INSUFFICIENT_BALANCE,
+        ALLOWANCE_NOT_ENOUGH,
+        NONE
+    }
 
     event AdminUpdated(address indexed previousAdmin, address indexed newAdmin);
     event FeeUpdated(address indexed previousFee, address indexed newFee);
-    event AiValidatorUpdated(address indexed previousValidator, address indexed newValidator);
+    event AiValidatorUpdated(
+        address indexed previousValidator,
+        address indexed newValidator
+    );
 
     event ExecuteValidateFailed(
         address indexed executor,
         IIntentRequest.IntentReq intentReq,
-        IIntentValidator.ValidationResult result
+        ValidationResult result
     );
 
     event FeeAmountUpdated(
@@ -21,8 +30,14 @@ interface IAiExecutor {
         uint256 feeAmount
     );
 
-    function aiValidator() external view returns (IIntentValidator);
     function fee() external view returns (IFee);
 
-    function execute(IIntentRequest.IntentReq memory intentReq, address receiver) external payable returns (bytes memory);
+    function execute(
+        IIntentRequest.IntentReq memory intentReq,
+        address receiver
+    ) external payable returns (bytes memory);
+
+    function validate(
+        IIntentRequest.IntentReq memory intentReq
+    ) external view returns (bool success, ValidationResult result);
 }
