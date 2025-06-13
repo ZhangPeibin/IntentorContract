@@ -13,7 +13,6 @@ import "./interfaces/IDex.sol";
 
 contract AiExecutor is OwnableUpgradeable ,ReentrancyGuardUpgradeable ,IAiExecutor  {
 
-
     IIntentValidator public override aiValidator;
     IFee public override fee;
     IDex public dex;
@@ -60,6 +59,7 @@ contract AiExecutor is OwnableUpgradeable ,ReentrancyGuardUpgradeable ,IAiExecut
         //collect fee
         uint256 feeAmount = fee.collectFee(msg.sender,intentReq.fromToken, intentReq.amount);
         address feeRecipient = fee.feeRecipient();
+        emit FeeAmountUpdated(intentReq.fromToken,feeRecipient,feeAmount);
         require(feeRecipient != address(0), "Fee recipient not set");
         if(intentReq.fromToken == address(0)) {
             require(msg.value >= feeAmount, "Insufficient fee amount sent");

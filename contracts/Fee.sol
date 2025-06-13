@@ -58,6 +58,11 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 amount
     ) public view override returns (uint256) {
         require(amount > 0, "Amount must be greater than zero");
+        if (fromToken == address(0)) {
+            // If the token is native (e.g., ETH), use a fixed fee
+            return 0.001 ether; // Example: 0.001 ETH fee for native token
+        }
+        
         uint256 _userNonce = userNonce[sender];
         uint24 feeTick = feeAmountTickSpacing[500]; // Default to 500 tick spacing
         if ( _userNonce > 500 && _userNonce <= 1000) {

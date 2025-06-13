@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IDex.sol";
 
-abstract contract Basedex is IDex , Ownable{
-
+abstract contract Basedex is IDex, Ownable {
     uint24 public constant poolFee = 3000;
 
     address public immutable router;
@@ -12,8 +11,7 @@ abstract contract Basedex is IDex , Ownable{
 
     mapping(address => bool) public isSwapWhitelist;
 
-
-    constructor(address admin , address _router, address _weth) Ownable(admin){
+    constructor(address admin, address _router, address _weth) Ownable(admin) {
         require(_router != address(0), "Invalid router address");
         require(_weth != address(0), "Invalid WETH address");
         router = _router;
@@ -27,14 +25,20 @@ abstract contract Basedex is IDex , Ownable{
         _;
     }
 
-    function setSwapWhitelist(address[] calldata accounts, bool status) external onlyOwner {
+    function setSwapWhitelist(
+        address[] calldata accounts,
+        bool status
+    ) external onlyOwner {
         for (uint256 i = 0; i < accounts.length; i++) {
             isSwapWhitelist[accounts[i]] = status;
             emit SwapWhitelistUpdated(accounts[i], status);
         }
     }
 
-    function setSwapWhitelistSingle(address account, bool status) external onlyOwner {
+    function setSwapWhitelistSingle(
+        address account,
+        bool status
+    ) external onlyOwner {
         isSwapWhitelist[account] = status;
         emit SwapWhitelistUpdated(account, status);
     }
@@ -48,6 +52,7 @@ abstract contract Basedex is IDex , Ownable{
         address tokenOut,
         uint256 amountIn,
         uint256 amountOutMinimum,
+        address refundTo,
         bool exactInput
-    ) external virtual returns (uint256 amountOut);
+    ) external payable virtual returns (uint256 amountOut);
 }

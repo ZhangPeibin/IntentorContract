@@ -15,6 +15,12 @@ interface IAiExecutor {
         IIntentValidator.ValidationResult result
     );
 
+    event FeeAmountUpdated(
+        address indexed token,
+        address indexed feeRecipient,
+        uint256 feeAmount
+    );
+
     function aiValidator() external view returns (IIntentValidator);
     function fee() external view returns (IFee);
 
