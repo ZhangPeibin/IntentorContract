@@ -15,12 +15,7 @@ contract Uniswap is Basedex, ReentrancyGuard {
     ) Basedex(msg.sender, _router, _weth) {}
 
     function swap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMinimum,
-        address refundTo,
-        bool exactInput
+        SwapParam memory swapParam
     )
         external
         payable
@@ -29,28 +24,28 @@ contract Uniswap is Basedex, ReentrancyGuard {
         onlyWhitelisted
         returns (uint256 amountOut)
     {
-        require(tokenIn != tokenOut, "TokenIn and TokenOut must be different");
+        require(swapParam.tokenIn != swapParam.tokenOut, "TokenIn and TokenOut must be different");
 
-        require(amountIn > 0, "Amount must be greater than zero");
-        require(refundTo != address(0), "Refund address cannot be zero");
+        require(swapParam.amountIn > 0, "Amount must be greater than zero");
+        require(swapParam.refundTo != address(0), "Refund address cannot be zero");
 
-        address inputToken = tokenIn == address(0) ? weth : tokenIn;
-        address outputToken = tokenOut == address(0) ? weth : tokenOut;
+        address inputToken = swapParam.tokenIn == address(0) ? weth : swapParam.tokenIn;
+        address outputToken =swapParam.tokenOut == address(0) ? weth : swapParam.tokenOut;
 
-        _handleInput(inputToken, amountIn, refundTo);
+        _handleInput(inputToken, swapParam.amountIn, swapParam.refundTo);
 
-        TransferHelper.safeApprove(inputToken, router, amountIn);
+        TransferHelper.safeApprove(inputToken, router, swapParam.amountIn);
 
         //swap exactInput tokenIn for unkown tokenOut
-        if (exactInput) {
+        if (swapParam.exactInput) {
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
                 .ExactInputSingleParams({
                     tokenIn: inputToken,
                     tokenOut: outputToken,
                     fee: poolFee,
                     recipient: address(this),
-                    amountIn: amountIn,
-                    amountOutMinimum: amountOutMinimum,
+                    amountIn: swapParam.amountIn,
+                    amountOutMinimum: swapParam.amountOutMinimum,
                     sqrtPriceLimitX96: 0
                 });
 
@@ -58,9 +53,9 @@ contract Uniswap is Basedex, ReentrancyGuard {
                 uint256 amountOutReceived
             ) {
                 amountOut = amountOutReceived;
-                _handleOutput(outputToken, amountOut, refundTo);
+                _handleOutput(outputToken, amountOut,swapParam. refundTo);
             } catch {
-                _refund(inputToken, amountIn, refundTo);
+                _refund(inputToken, swapParam.amountIn,swapParam.refundTo);
 
                 revert("Swap failed");
             }
@@ -72,28 +67,28 @@ contract Uniswap is Basedex, ReentrancyGuard {
                     tokenOut: outputToken,
                     fee: poolFee,
                     recipient: address(this),
-                    amountOut: amountOutMinimum,
-                    amountInMaximum: amountIn,
+                    amountOut: swapParam.amountOutMinimum,
+                    amountInMaximum: swapParam.amountIn,
                     sqrtPriceLimitX96: 0
                 });
 
             try ISwapRouter(router).exactOutputSingle(params) returns (
                 uint256 amountInUsed
             ) {
-                amountOut = amountOutMinimum;
-                _handleOutput(outputToken, amountOut, refundTo);
+                amountOut = swapParam.amountOutMinimum;
+                _handleOutput(outputToken, amountOut, swapParam.refundTo);
                 // Refund any unused input token
-                if (amountInUsed < amountIn) {
-                    _refund(inputToken, amountIn - amountInUsed, refundTo);
+                if (amountInUsed < swapParam.amountIn) {
+                    _refund(inputToken, swapParam.amountIn - amountInUsed, swapParam.refundTo);
                 }
             } catch {
-                _refund(inputToken, amountIn, refundTo);
+                _refund(inputToken, swapParam.amountIn, swapParam.refundTo);
                 revert("Swap failed");
             }
         }
 
         // Emit the Swap event
-        emit Swapped(msg.sender, tokenIn, tokenOut, amountIn, amountOut, exactInput);
+        emit Swapped(msg.sender, swapParam.tokenIn, swapParam.tokenOut, swapParam.amountIn, amountOut, swapParam.exactInput);
 
         return amountOut;
     }

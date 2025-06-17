@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import "./IIntentRequest.sol";
 import "./IFee.sol";
 interface IAiExecutor {
-    
     enum ValidationResult {
         INSUFFICIENT_BALANCE,
         ALLOWANCE_NOT_ENOUGH,
@@ -24,20 +23,28 @@ interface IAiExecutor {
         ValidationResult result
     );
 
-    event FeeAmountUpdated(
+    event FeeAmount(
         address indexed token,
         address indexed feeRecipient,
         uint256 feeAmount
     );
 
+    event DexRouterUpdated(
+        address indexed oldRouter,
+        address indexed newRouter,
+        bytes32 key
+    );
+
     function fee() external view returns (IFee);
 
     function execute(
-        IIntentRequest.IntentReq memory intentReq,
-        address receiver
-    ) external payable returns (bytes memory);
+        IIntentRequest.IntentReq memory intentReq
+    ) external payable returns (uint256 amount);
 
     function validate(
         IIntentRequest.IntentReq memory intentReq
     ) external view returns (bool success, ValidationResult result);
+
+    function addDexRouter(string calldata dex, address router) external;
+    function getRouterByDex(string calldata dex) external view returns (address);
 }

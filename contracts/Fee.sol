@@ -5,9 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "./interfaces/IFee.sol";
 
 contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-
-    uint256 immutable FEE_DENOMINATOR = 10000; 
-
+    uint256 public constant FEE_DENOMINATOR = 10000;
 
     // Address that receives the fees
     address public override feeRecipient;
@@ -20,31 +18,29 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     // Fee amounts for different token types
     mapping(uint256 => uint24) public override feeAmountTickSpacing;
 
-
-    mapping (address => uint256) public override userNonce;
+    mapping(address => uint256) public override userNonce;
 
     modifier onlyAIExecutor() {
         require(msg.sender == aiExecutor, "Caller is not the AI Executor");
         _;
     }
 
-
-    function __Fee_inint(address _admin, address _feeRecipient) external initializer { 
+    function __Fee_init(
+        address _admin,
+        address _feeRecipient
+    ) external initializer {
         __Ownable_init(_admin);
         __ReentrancyGuard_init();
         require(_feeRecipient != address(0), "Invalid fee recipient address");
         emit FeeRecipientUpdated(address(0), _feeRecipient);
         feeRecipient = _feeRecipient;
 
-        feeAmountTickSpacing[500] = 10; // Example: 0.1% fee for 500 tick spacing
-        emit FeeAmountTickSpacingUpdated(500, 10);
-        feeAmountTickSpacing[1000] = 20; // Example: 0.2% fee for 1000 tick spacing 
-        emit FeeAmountTickSpacingUpdated(1000, 20);
-        feeAmountTickSpacing[2000] = 30; // Example: 0.3% fee for 2000 tick spacing
-        emit FeeAmountTickSpacingUpdated(2000, 30);
+        _setDefaultFeeConfig();
     }
-    
 
+    function updateFeeConfig(uint256 spacing, uint24 tick) external onlyOwner {
+        _updateFeeTickSpacing(spacing, tick);
+    }
 
     /**
      * @dev Calculate the fee based on the token type and amount.
@@ -58,21 +54,22 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 amount
     ) public view override returns (uint256) {
         require(amount > 0, "Amount must be greater than zero");
-        if (fromToken == address(0)) {
+        if (fromToken == address(0)) { 
             // If the token is native (e.g., ETH), use a fixed fee
             return 0.001 ether; // Example: 0.001 ETH fee for native token
         }
-        
-        uint256 _userNonce = userNonce[sender];
-        uint24 feeTick = feeAmountTickSpacing[500]; // Default to 500 tick spacing
-        if ( _userNonce > 500 && _userNonce <= 1000) {
-            feeTick = feeAmountTickSpacing[1000]; // Use 1000 tick spacing
-        } else if (_userNonce > 1000) {
-            feeTick = feeAmountTickSpacing[2000]; // Use 2000 tick spacing  
+
+        uint256 nonce = userNonce[sender];
+        uint24 tick = feeAmountTickSpacing[500]; // Default to 500 tick spacing
+        if (nonce > 1000) {
+            tick = feeAmountTickSpacing[2000];
+        } else if (nonce > 500) {
+            tick = feeAmountTickSpacing[1000];
+        } else {
+            tick = feeAmountTickSpacing[500];
         }
 
- 
-        uint256 fee = (amount * feeTick) / FEE_DENOMINATOR;
+        uint256 fee = (amount * tick) / FEE_DENOMINATOR;
         return fee;
     }
 
@@ -88,20 +85,21 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         uint256 amount
     ) public override nonReentrant onlyAIExecutor returns (uint256) {
         require(amount > 0, "Amount must be greater than zero");
-        uint256 fee = estimateFee(sender,fromToken, amount);
-        require(fee < amount, "Fee cannot be greater than amount");
+        uint256 fee = estimateFee(sender, fromToken, amount);
+        require(fee < amount, "Fee cannot exceed amount");
         emit FeeCollected(fromToken, fee, msg.sender);
         feesCollected[fromToken] += fee;
         return fee;
     }
 
     function updateUserNonce(address user) external override onlyAIExecutor {
-        userNonce[user] += 1;  
+        unchecked {
+            userNonce[user] += 1;
+        }
         emit UserNonceUpdated(user, userNonce[user]);
     }
 
-
-        /**
+    /**
      * @dev Set the AI executor address.
      * @param _aiExecutor The address of the AI executor.
      */
@@ -110,6 +108,17 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         address previousExecutor = aiExecutor;
         emit AIExecutorUpdated(previousExecutor, _aiExecutor);
         aiExecutor = _aiExecutor;
+    }
+
+    function _setDefaultFeeConfig() internal {
+        _updateFeeTickSpacing(500, 10); // 0.1%
+        _updateFeeTickSpacing(1000, 20); // 0.2%
+        _updateFeeTickSpacing(2000, 30); // 0.3%
+    }
+
+    function _updateFeeTickSpacing(uint256 spacing, uint24 tick) internal {
+        feeAmountTickSpacing[spacing] = tick;
+        emit FeeAmountTickSpacingUpdated(spacing, tick);
     }
 
     receive() external payable {

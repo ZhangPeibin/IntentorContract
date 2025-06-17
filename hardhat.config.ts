@@ -1,5 +1,6 @@
 import { HardhatUserConfig, vars } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 
 const PRIVATE_KEY = vars.get('TEST_PK')
 const config: HardhatUserConfig = {

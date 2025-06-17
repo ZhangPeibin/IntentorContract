@@ -48,11 +48,6 @@ abstract contract Basedex is IDex, Ownable {
     }
 
     function swap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMinimum,
-        address refundTo,
-        bool exactInput
+        SwapParam memory swapParam
     ) external payable virtual returns (uint256 amountOut);
 }

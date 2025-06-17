@@ -17,9 +17,8 @@ contract AiExecutor is
     ReentrancyGuardUpgradeable
 {
     IFee public override fee;
-    IDex public dex;
 
-    mapping(uint256 => address) public chainToRouter;
+    mapping(bytes32 => address) public dexToRouter;
 
     constructor() {
         _disableInitializers();
@@ -27,58 +26,46 @@ contract AiExecutor is
 
     function __AIExecutor_init(
         address admin,
-        address _fee
+        address _feeAdress
     ) external initializer {
         __Ownable_init(admin);
         emit AdminUpdated(address(0), admin);
-        require(_fee != address(0), "Invalid fee address");
-        fee = IFee(_fee);
-        emit FeeUpdated(address(0), _fee);
+        require(_feeAdress != address(0), "Invalid fee address");
+        fee = IFee(_feeAdress);
+        emit FeeUpdated(address(0), _feeAdress);
     }
 
     function execute(
-        IIntentRequest.IntentReq memory intentReq,
-        address receiver
-    ) external payable nonReentrant returns (bytes memory) {
+        IIntentRequest.IntentReq memory intentReq
+    ) external payable nonReentrant returns (uint256 amount) {
         require(intentReq.chainId == block.chainid, "Invalid chain ID");
 
         // Validate user balance and allowance
-        (bool success, ValidationResult result) = validate(
-            intentReq
-        );
+        (bool success, ValidationResult result) = validate(intentReq);
         if (!success) {
             emit ExecuteValidateFailed(msg.sender, intentReq, result);
             revert(string(abi.encode(result)));
         }
 
-        //collect fee
-        uint256 feeAmount = fee.collectFee(
-            msg.sender,
-            intentReq.fromToken,
-            intentReq.amount
-        );
-        address feeRecipient = fee.feeRecipient();
-        emit FeeAmountUpdated(intentReq.fromToken, feeRecipient, feeAmount);
-        require(feeRecipient != address(0), "Fee recipient not set");
-        if (intentReq.fromToken == address(0)) {
-            require(msg.value >= feeAmount, "Insufficient fee amount sent");
-            TransferHelper.safeTransferETH(feeRecipient, feeAmount);
-        } else {
-            TransferHelper.safeTransferFrom(
-                intentReq.fromToken,
-                msg.sender,
-                address(this),
-                intentReq.amount
-            );
-            TransferHelper.safeTransfer(
-                intentReq.fromToken,
-                feeRecipient,
-                feeAmount
-            );
-        }
-        // Update user nonce
-        // Execute the intent
-        return "";
+        bytes32 key = keccak256(abi.encodePacked(intentReq.platform));
+        address router = dexToRouter[key];
+        require(router != address(0), "No router configed");
+        uint256 feeAmount = _fee(intentReq.fromToken, intentReq.amount,router);
+        uint256 finallyAmount = intentReq.amount - feeAmount;
+        address refundTo = intentReq.receiver == address(0)
+            ? msg.sender
+            : intentReq.receiver;
+
+        IDex.SwapParam memory swapParam= IDex.SwapParam({
+            tokenIn: intentReq.fromToken,
+            tokenOut: intentReq.toToken,
+            amountIn: finallyAmount,
+            amountOutMinimum: intentReq.amountMinout,
+            refundTo: refundTo,
+            exactInput: intentReq.exactInput
+        });
+        amount = IDex(router).swap(swapParam);
+        return amount;
     }
 
     /**
@@ -115,6 +102,46 @@ contract AiExecutor is
         }
 
         return (true, ValidationResult.NONE);
+    }
+
+    function addDexRouter(string calldata _dex, address router) external {
+        bytes32 key = keccak256(abi.encodePacked(_dex));
+        address oldRouter = dexToRouter[key];
+        dexToRouter[key] = router;
+        emit DexRouterUpdated(oldRouter, router, key);
+    }
+
+    function getRouterByDex(
+        string calldata _dex
+    ) external view returns (address) {
+        bytes32 key = keccak256(abi.encodePacked(_dex));
+        return dexToRouter[key];
+    }
+
+    function _fee(
+        address fromToken,
+        uint256 amount,
+        address router
+    ) internal returns (uint256) {
+        uint256 feeAmount = fee.collectFee(msg.sender, fromToken, amount);
+        address feeRecipient = fee.feeRecipient();
+        emit FeeAmount(fromToken, feeRecipient, feeAmount);
+        require(feeRecipient != address(0), "Fee recipient not set");
+        if (fromToken == address(0)) {
+            require(msg.value >= feeAmount, "Insufficient fee amount sent");
+            TransferHelper.safeTransferETH(feeRecipient, feeAmount);
+        } else {
+            
+            TransferHelper.safeTransfer(fromToken, feeRecipient, feeAmount);
+            TransferHelper.safeTransferFrom(
+                fromToken,
+                msg.sender,
+                address(this),
+                amount
+            );
+            TransferHelper.safeApprove(fromToken, router, amount - feeAmount);
+        }
+        return feeAmount;
     }
 
     receive() external payable {}

@@ -2,7 +2,15 @@
 pragma solidity ^0.8.28;
 
 interface IDex {
-  
+    struct SwapParam {
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        address refundTo;
+        bool exactInput;
+    }
+
     event SwapWhitelistUpdated(address indexed account, bool status);
 
     event RouterUpdated(address indexed oldRouter, address indexed newRouter);
@@ -21,11 +29,6 @@ interface IDex {
     );
 
     function swap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMinimum,
-        address refundTo,
-        bool exactInput
+        SwapParam memory swapParam
     ) external payable returns (uint256 amountOut);
 }
