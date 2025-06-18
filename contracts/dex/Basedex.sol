@@ -28,7 +28,7 @@ abstract contract Basedex is IDex, Ownable {
     function setSwapWhitelist(
         address[] calldata accounts,
         bool status
-    ) external onlyOwner {
+    ) external onlyOwner override {
         for (uint256 i = 0; i < accounts.length; i++) {
             isSwapWhitelist[accounts[i]] = status;
             emit SwapWhitelistUpdated(accounts[i], status);
@@ -38,12 +38,12 @@ abstract contract Basedex is IDex, Ownable {
     function setSwapWhitelistSingle(
         address account,
         bool status
-    ) external onlyOwner {
+    ) external override onlyOwner {
         isSwapWhitelist[account] = status;
         emit SwapWhitelistUpdated(account, status);
     }
 
-    function isWhitelisted(address account) external view returns (bool) {
+    function isWhitelisted(address account) external view override returns (bool) {
         return isSwapWhitelist[account];
     }
 

@@ -35,6 +35,18 @@ interface IAiExecutor {
         bytes32 key
     );
 
+    event DexRouterRemoved(address oldRouter, bytes32 indexed dexKey);
+
+
+    event Executed(
+        address indexed user,
+        address fromToken,
+        address toToken,
+        uint256 amountIn,
+        uint256 amountOut,
+        address refundTo
+    );
+
     function fee() external view returns (IFee);
 
     function execute(
@@ -42,9 +54,15 @@ interface IAiExecutor {
     ) external payable returns (uint256 amount);
 
     function validate(
-        IIntentRequest.IntentReq memory intentReq
+        IIntentRequest.IntentReq memory intentReq,
+        uint256 msgValue
     ) external view returns (bool success, ValidationResult result);
 
+
+
     function addDexRouter(string calldata dex, address router) external;
-    function getRouterByDex(string calldata dex) external view returns (address);
+    function removeDexRouter(string calldata dex) external;
+    function getRouterByDex(
+        string calldata dex
+    ) external view returns (address);
 }

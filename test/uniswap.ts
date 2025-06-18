@@ -101,19 +101,19 @@ async function main() {
     });
     console.log("📊 Quote Result:", ethers.formatEther(r.toString()));
 
-    const txt = await uniDex.swap(
-        from,
-        to,
-        r,
-        amount, // minAmountOut
-        user.address,
-        false,// 发送BNB作为gas费,
-        {
-            value: r // 发送0.01 BNB作为gas费
-        }
-    );
-    const receipt = await txt.wait();
-    console.log("✅ Swap Transaction Hash:", receipt);
+    // const txt = await uniDex.swap(
+    //     from,
+    //     to,
+    //     r,
+    //     amount, // minAmountOut
+    //     user.address,
+    //     false,// 发送BNB作为gas费,
+    //     {
+    //         value: r // 发送0.01 BNB作为gas费
+    //     }
+    // );
+    // const receipt = await txt.wait();
+    // console.log("✅ Swap Transaction Hash:", receipt);
 }
 // 入口
 main().catch((error) => {

@@ -1,13 +1,31 @@
 import { ethers } from "hardhat";
 import axios from "axios";
 import * as dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+
 dotenv.config();
 
 const VERIFY_API = process.env.VERIFY_API || 'http://localhost:3000/api/verify';
 
+
+async function getAiExecutor(chainId: number): Promise<string> {
+  const aiExecutorConfigPath = path.resolve(__dirname, "../config/AiExecutor.json");  
+  if (!fs.existsSync(aiExecutorConfigPath)) {
+    throw new Error(`❌ AiExecutor config file not found: ${aiExecutorConfigPath}`);
+  }
+  const aiExecutorConfig = JSON.parse(fs.readFileSync(aiExecutorConfigPath, "utf-8"));
+  const aiExecutor = aiExecutorConfig[Number(chainId).toString()];
+
+  if (!aiExecutor) {
+    throw new Error(`❌ AiExecutor not found for chainId: ${chainId}`);
+  }
+  return aiExecutor.address;
+}
+
 async function main() {
   const [deployer, admin, user] = await ethers.getSigners();
-  const chainId = 56;
+  const { chainId } = await ethers.provider.getNetwork();
   console.log("👤 User Address:", user.address);
   // 1. 获取 nonce 和 SIWE 消息
   const signInfoRes = await axios.get(`${VERIFY_API}/signinfo`, {
@@ -57,19 +75,41 @@ async function main() {
   intent.fromToken = mockUSDT.target;
   intent.toToken = mockUSDT.target;
 
-  const validator = await ethers.deployContract('IntentValidator', [admin.address]);
+  const aiExecutorAddress = await getAiExecutor(Number(chainId));
+  console.log("🤖 AiExecutor Address:", aiExecutorAddress);
   
+  const aiExecutor = await ethers.getContractAt('AiExecutor', aiExecutorAddress);
+  console.log("🤖 AiExecutor Dex Contract:",await aiExecutor.getRouterByDex('uni'));
+
   //mint token
   await mockUSDT.connect(user).mint();
+  console.log("intnet:", intent);
 
-  const result = await validator.connect(user).validate(intent as any);
+  /**
+   *    struct IntentReq {
+        address receiver;
+        uint256 amountMinout;
+        bool exactInput;
+        string intent;
+        string platform;
+        address fromToken;
+        address toToken;
+        uint256 amount;
+        uint32 chainId;
+    }
+   */
+  intent.receiver = user.address;
+  intent.amountMinout = ethers.parseUnits("20", 6); 
+  intent.exactInput = true;
+  intent.platform = "quickswap";
+  intent.chainId = chainId;
+  const result = await aiExecutor.connect(user).validate(intent as any,0);
 
   console.log("✅ Intent Validation Result:", result);
   if (result[1] === 1n) {
-    await mockUSDT.connect(user).approve(deployer.address, ethers.parseUnits(intent.amount, 18));
-    const result = await validator.connect(user).validate(intent as any);
+    await mockUSDT.connect(user).approve(aiExecutor.target, ethers.parseUnits(intent.amount, 18));
+    const result = await aiExecutor.connect(user).validate(intent as any,0);
     console.log("✅ Intent Validation Result:", result);
-
   }
 }
 

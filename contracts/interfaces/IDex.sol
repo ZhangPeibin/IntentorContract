@@ -28,6 +28,18 @@ interface IDex {
         bool exactInput
     );
 
+    function setSwapWhitelist(
+        address[] calldata accounts,
+        bool status
+    ) external;
+
+    function setSwapWhitelistSingle(
+        address account,
+        bool status
+    ) external; 
+
+    function isWhitelisted(address account) external view returns (bool);
+
     function swap(
         SwapParam memory swapParam
     ) external payable returns (uint256 amountOut);

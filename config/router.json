@@ -1,0 +1,11 @@
+{
+  "31337": {
+    "chainId": 31337,
+    "network": "localhost",
+    "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    "router": "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
+    "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+    "deployedAt": "2025-06-18T06:38:09.020Z",
+    "isConfigExecutor": true
+  }
+}
