@@ -106,7 +106,27 @@ async function main() {
     await saveAiExecutorConfig(Number(chainId), aiExecutor.target);
 }
 
-main().catch((error) => {
+async function updateAiExecutor() {
+    const network = await ethers.provider.getNetwork();
+    const chainId = network.chainId;
+    console.log("🌐 Network ChainId:", chainId)
+    if (!fs.existsSync(aiExecutorConfigPath)) {
+        throw new Error(`❌ AiExecutor config file not found: ${aiExecutorConfigPath}`) ;
+    }
+    const aiExecutorConfig = JSON.parse(fs.readFileSync(aiExecutorConfigPath, "utf-8"));
+    const aiExecutor = aiExecutorConfig[Number(chainId).toString()];
+    if (!aiExecutor) {
+        throw new Error(`❌ AiExecutor not found for chainId: ${chainId}`);
+    }
+
+    console.log("✅ AiExecutor Address:", aiExecutor.address);
+    const AIExecutor = await ethers.getContractFactory("AiExecutor");
+    const tx = await upgrades.upgradeProxy(aiExecutor.address, AIExecutor);
+    await tx.waitForDeployment();
+    console.log(`✅ AiExecutor upgraded at proxy address: ${tx.target}`);
+}
+
+updateAiExecutor().catch((error) => {
     console.error(error);
     process.exit(1);
 });

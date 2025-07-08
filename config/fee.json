@@ -1,4 +1,8 @@
 {
+  "56": {
+    "fee": "0x7683d565c37dc7e9875Ee86E9f3F4996b4d7E284",
+    "isConfigExecutor": true
+  },
   "31337": {
     "fee": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
     "isConfigExecutor": true

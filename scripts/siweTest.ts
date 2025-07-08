@@ -7,10 +7,11 @@ import fs from "fs";
 dotenv.config();
 
 const VERIFY_API = process.env.VERIFY_API || 'http://localhost:3000/api/verify';
-
+const wbnb = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+const usdt = "0x55d398326f99059ff775485246999027b3197955"
 
 async function getAiExecutor(chainId: number): Promise<string> {
-  const aiExecutorConfigPath = path.resolve(__dirname, "../config/AiExecutor.json");  
+  const aiExecutorConfigPath = path.resolve(__dirname, "../config/AiExecutor.json");
   if (!fs.existsSync(aiExecutorConfigPath)) {
     throw new Error(`❌ AiExecutor config file not found: ${aiExecutorConfigPath}`);
   }
@@ -23,8 +24,21 @@ async function getAiExecutor(chainId: number): Promise<string> {
   return aiExecutor.address;
 }
 
+async function getQuoter(chainId: number): Promise<string> {
+  const quoterConfigPath = path.resolve(__dirname, "../config/Quoter.json");
+  if (!fs.existsSync(quoterConfigPath)) {
+    throw new Error(`❌ Quoter config file not found: ${quoterConfigPath}`);
+  }
+  const quoterConfig = JSON.parse(fs.readFileSync(quoterConfigPath, "utf-8"));
+  const quoter = quoterConfig[Number(chainId).toString()];
+  if (!quoter) {
+    throw new Error(`❌ Quoter not found for chainId: ${chainId}`);
+  }
+  return quoter.quoter;
+}
+
 async function main() {
-  const [deployer, admin, user] = await ethers.getSigners();
+  const [user] = await ethers.getSigners();
   const { chainId } = await ethers.provider.getNetwork();
   console.log("👤 User Address:", user.address);
   // 1. 获取 nonce 和 SIWE 消息
@@ -57,7 +71,7 @@ async function main() {
   const INTENT_API = VERIFY_API.replace('/api/verify', '/api/intent');
 
   const intentPayload = {
-    message: "给我买20u的TEST代币在quickswap上面",
+    message: "帮我bsc上通过uni用0.0001bnb买usdt",
     wallet: user.address,
   };
 
@@ -70,47 +84,64 @@ async function main() {
 
   console.log("🤖 Intent Verify Response:", intentVerifyRes.data);
 
-  const mockUSDT = await ethers.deployContract('MockUSDT', [100]);
   const intent = intentVerifyRes.data
-  intent.fromToken = mockUSDT.target;
-  intent.toToken = mockUSDT.target;
+  intent.receiver = user.address;//okx wallet 2
+  intent.exactInput = true;
+  intent.platform = "uni";
+  intent.fromToken = wbnb; // USDT
+  intent.toToken = usdt;
+
+  const quoterAddress = await getQuoter(Number(chainId));
+  console.log("🤖 Quoter Address:", quoterAddress);
+  const quoterContract = await ethers.getContractAt('IBaseQuoter', quoterAddress);
+
+
+  const amount = await quoterContract.quoteExactInput.staticCall({
+    dex: intent.platform,
+    tokenIn: intent.fromToken,
+    tokenOut: intent.toToken,
+    amount: ethers.parseUnits(intent.amount, 18), // 1 USDT
+    fee: 3000, // Uniswap V3 fee tier 
+  });
+
+  intent.amountMinout = amount.toString();
+
+  const amountInWei = ethers.parseUnits(intent.amount, 18);
+  // slippage 加成（用 BigInt 实现 乘1.1）
+  const multiplied = (amountInWei * BigInt(Math.floor(1.1 * 10000))) / BigInt(10000);
+
+  intent.amount = multiplied.toString();
 
   const aiExecutorAddress = await getAiExecutor(Number(chainId));
   console.log("🤖 AiExecutor Address:", aiExecutorAddress);
-  
+
   const aiExecutor = await ethers.getContractAt('AiExecutor', aiExecutorAddress);
-  console.log("🤖 AiExecutor Dex Contract:",await aiExecutor.getRouterByDex('uni'));
+  console.log("🤖 AiExecutor Dex Contract:", await aiExecutor.getRouterByDex('uni'));
 
-  //mint token
-  await mockUSDT.connect(user).mint();
-  console.log("intnet:", intent);
 
-  /**
-   *    struct IntentReq {
-        address receiver;
-        uint256 amountMinout;
-        bool exactInput;
-        string intent;
-        string platform;
-        address fromToken;
-        address toToken;
-        uint256 amount;
-        uint32 chainId;
+  if (intent.fromToken !== wbnb) {
+    const result = await aiExecutor.connect(user).validate(intent as any, 0);
+    console.log("✅ Intent Validation Result:", result);
+
+    const fromTokenContract = await ethers.getContractAt('IERC20', intent.fromToken);
+    if (result[1] === 1n) {
+      await fromTokenContract.connect(user).approve(aiExecutor.target, intent.amount);
+      const result = await aiExecutor.connect(user).validate(intent as any, 0);
+      console.log("✅ Intent Validation Result:", result);
     }
-   */
-  intent.receiver = user.address;
-  intent.amountMinout = ethers.parseUnits("20", 6); 
-  intent.exactInput = true;
-  intent.platform = "quickswap";
-  intent.chainId = chainId;
-  const result = await aiExecutor.connect(user).validate(intent as any,0);
 
-  console.log("✅ Intent Validation Result:", result);
-  if (result[1] === 1n) {
-    await mockUSDT.connect(user).approve(aiExecutor.target, ethers.parseUnits(intent.amount, 18));
-    const result = await aiExecutor.connect(user).validate(intent as any,0);
+    intent.toToken = ethers.ZeroAddress;
+    intent.amount = Number(intent.amount).toString()
+    console.log("Intent", intent)
+  } else {
+    intent.fromToken = ethers.ZeroAddress;
+    const balance = await ethers.provider.getBalance(user.address);
+    const result = await aiExecutor.connect(user).validate(intent as any, intent.amount);
     console.log("✅ Intent Validation Result:", result);
   }
+
+  console.log("🤖 Executing intent :", intent);
+  await aiExecutor.connect(user).execute(intent as any, { value: intent.amount });
 }
 
 // 入口

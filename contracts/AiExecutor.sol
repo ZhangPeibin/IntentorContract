@@ -70,7 +70,8 @@ contract AiExecutor is
             refundTo: refundTo,
             exactInput: intentReq.exactInput
         });
-        amount = IDex(router).swap(swapParam);
+
+        amount = IDex(router).swap{value: msg.value - feeAmount}(swapParam);
         emit Executed(
             msg.sender,
             intentReq.fromToken,

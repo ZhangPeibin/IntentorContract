@@ -20,6 +20,10 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
 
     mapping(address => uint256) public override userNonce;
 
+
+    uint256 public override etherFee ; // Example: 0.001 ETH fee for native token
+
+
     modifier onlyAIExecutor() {
         require(msg.sender == aiExecutor, "Caller is not the AI Executor");
         _;
@@ -34,7 +38,8 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         require(_feeRecipient != address(0), "Invalid fee recipient address");
         emit FeeRecipientUpdated(address(0), _feeRecipient);
         feeRecipient = _feeRecipient;
-
+        etherFee = 0.00001 ether; // Default ether fee
+        emit EtherFeeUpdated(0, etherFee);
         _setDefaultFeeConfig();
     }
 
@@ -56,7 +61,7 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         require(amount > 0, "Amount must be greater than zero");
         if (fromToken == address(0)) { 
             // If the token is native (e.g., ETH), use a fixed fee
-            return 0.001 ether; // Example: 0.001 ETH fee for native token
+            return etherFee; // Example: 0.001 ETH fee for native token
         }
 
         uint256 nonce = userNonce[sender];
@@ -97,6 +102,21 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
             userNonce[user] += 1;
         }
         emit UserNonceUpdated(user, userNonce[user]);
+    }
+
+
+    function setEtherFee(uint256 _etherFee) external override onlyOwner {
+        require(_etherFee > 0, "Ether fee must be greater than zero");
+        uint256 previousFee = etherFee;
+        etherFee = _etherFee;
+        emit EtherFeeUpdated(previousFee, _etherFee);
+    }
+
+    function setFeeRecipient(address _feeRecipient) external override onlyOwner {
+        require(_feeRecipient != address(0), "Invalid fee recipient address");
+        address previousRecipient = feeRecipient;
+        emit FeeRecipientUpdated(previousRecipient, _feeRecipient);
+        feeRecipient = _feeRecipient;
     }
 
     /**

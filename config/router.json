@@ -1,4 +1,13 @@
 {
+  "56": {
+    "chainId": 56,
+    "network": "bsc",
+    "address": "0x02b5E1cDd2163fF08551F82EfC21FcA5eD720E51",
+    "router": "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
+    "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+    "deployedAt": "2025-06-18T13:20:47.313Z",
+    "isConfigExecutor": true
+  },
   "31337": {
     "chainId": 31337,
     "network": "localhost",
