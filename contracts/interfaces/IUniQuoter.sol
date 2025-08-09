@@ -8,7 +8,6 @@ pragma abicoder v2;
 /// @dev These functions are not marked view because they rely on calling non-view functions and reverting
 /// to compute the result. They are also not gas efficient and should not be called on-chain.
 interface IUniQuoter {
-
     struct QuoteExactInputSingleParams {
         address tokenIn;
         address tokenOut;
@@ -17,17 +16,6 @@ interface IUniQuoter {
         uint160 sqrtPriceLimitX96;
     }
 
-
-    function quoteExactInputSingle(QuoteExactInputSingleParams memory params)
-        external
-        returns (
-            uint256 amountOut,
-            uint160 sqrtPriceX96After,
-            uint32 initializedTicksCrossed,
-            uint256 gasEstimate
-        );
-
- 
     struct QuoteExactOutputSingleParams {
         address tokenIn;
         address tokenOut;
@@ -36,8 +24,20 @@ interface IUniQuoter {
         uint160 sqrtPriceLimitX96;
     }
 
+    function quoteExactInputSingle(
+        QuoteExactInputSingleParams memory params
+    )
+        external
+        returns (
+            uint256 amountOut,
+            uint160 sqrtPriceX96After,
+            uint32 initializedTicksCrossed,
+            uint256 gasEstimate
+        );
 
-    function quoteExactOutputSingle(QuoteExactOutputSingleParams memory params)
+    function quoteExactOutputSingle(
+        QuoteExactOutputSingleParams memory params
+    )
         external
         returns (
             uint256 amountIn,

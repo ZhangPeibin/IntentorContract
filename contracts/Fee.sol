@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol
 import "./interfaces/IFee.sol";
 
 contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+
     uint256 public constant FEE_DENOMINATOR = 10000;
 
     // Address that receives the fees
@@ -21,7 +22,7 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     mapping(address => uint256) public override userNonce;
 
 
-    uint256 public override etherFee ; // Example: 0.001 ETH fee for native token
+    uint256 public nativeTokenFee ; // Example: 0.001 ETH fee for native token
 
 
     modifier onlyAIExecutor() {
@@ -38,8 +39,8 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         require(_feeRecipient != address(0), "Invalid fee recipient address");
         emit FeeRecipientUpdated(address(0), _feeRecipient);
         feeRecipient = _feeRecipient;
-        etherFee = 0.00001 ether; // Default ether fee
-        emit EtherFeeUpdated(0, etherFee);
+        nativeTokenFee = 0.00001 ether; // Default ether fee
+        emit EtherFeeUpdated(0, nativeTokenFee);
         _setDefaultFeeConfig();
     }
 
@@ -61,7 +62,7 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
         require(amount > 0, "Amount must be greater than zero");
         if (fromToken == address(0)) { 
             // If the token is native (e.g., ETH), use a fixed fee
-            return etherFee; // Example: 0.001 ETH fee for native token
+            return nativeTokenFee; // Example: 0.001 ETH fee for native token
         }
 
         uint256 nonce = userNonce[sender];
@@ -70,10 +71,7 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
             tick = feeAmountTickSpacing[2000];
         } else if (nonce > 500) {
             tick = feeAmountTickSpacing[1000];
-        } else {
-            tick = feeAmountTickSpacing[500];
-        }
-
+        } 
         uint256 fee = (amount * tick) / FEE_DENOMINATOR;
         return fee;
     }
@@ -105,11 +103,10 @@ contract Fee is IFee, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     }
 
 
-    function setEtherFee(uint256 _etherFee) external override onlyOwner {
-        require(_etherFee > 0, "Ether fee must be greater than zero");
-        uint256 previousFee = etherFee;
-        etherFee = _etherFee;
-        emit EtherFeeUpdated(previousFee, _etherFee);
+    function setNativeTokenFee(uint256 _nativeTokenFee) external override onlyOwner {
+        uint256 previousFee = nativeTokenFee;
+        nativeTokenFee = _nativeTokenFee;
+        emit EtherFeeUpdated(previousFee, nativeTokenFee);
     }
 
     function setFeeRecipient(address _feeRecipient) external override onlyOwner {

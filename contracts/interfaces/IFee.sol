@@ -12,8 +12,7 @@ interface IFee {
     event FeeAmountTickSpacingUpdated(uint256 indexed tickSpacing, uint24 fee);
     event UserNonceUpdated(address indexed user, uint256 newNonce);
 
-    function etherFee() external view returns (uint256);
-    function setEtherFee(uint256 _etherFee) external;
+    function setNativeTokenFee(uint256 _etherFee) external;
 
     function feesCollected(address token) external view returns (uint256);
     function feeAmountTickSpacing(uint256 tickSpacing) external view returns (uint24 );

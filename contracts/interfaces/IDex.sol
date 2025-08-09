@@ -2,12 +2,14 @@
 pragma solidity ^0.8.28;
 
 interface IDex {
+    
     struct SwapParam {
-        address tokenIn;
-        address tokenOut;
         uint256 amountIn;
         uint256 amountOutMinimum;
-        address refundTo;
+        address tokenIn; // 20 bytes
+        address tokenOut; // 20 bytes
+        address refundTo; 
+        uint24 poolFee;
         bool exactInput;
     }
 

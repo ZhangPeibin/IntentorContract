@@ -4,7 +4,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IDex.sol";
 
 abstract contract Basedex is IDex, Ownable {
-    uint24 public constant poolFee = 3000;
 
     address public immutable router;
     address public immutable weth;

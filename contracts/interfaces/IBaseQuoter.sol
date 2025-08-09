@@ -7,28 +7,29 @@ pragma solidity ^0.8.28;
 /// @dev These functions are not marked view because they rely on calling non-view functions and reverting
 /// to compute the result. They are also not gas efficient and should not be called on-chain.
 interface IBaseQuoter {
+
     struct QuoterParams {
-        string dex;
+        uint256 amount;
         address tokenIn;
         address tokenOut;
-        uint256 amount;
-        uint24 fee;
+        bytes32 dex;// keccak256(abi.encodePacked('dex'))
     }
 
-    error UnSupportDex();
-    event QuoterUpdated(address indexed quoter, string dex);
+    event QuoterUpdated(address indexed quoter, bytes32 indexed dex);
 
-    function quoterFromDex(
-        string calldata dex
-    ) external view returns (address quoter);
-
-    function updateQuoter(string calldata dex, address quoter) external;
 
     function quoteExactInput(
-        QuoterParams memory params
-    ) external returns (uint256 amountOut);
+        QuoterParams calldata params
+    ) external returns (uint256 amountOut,uint24 poolFee);
 
     function quoteExactOutput(
-        QuoterParams memory params
-    ) external returns (uint256 amountIn);
+        QuoterParams calldata params
+    ) external returns (uint256 amountIn, uint24 poolFee);
+
+    function setDexInfo(bytes32 dex, address quoter, address factory) external;
+
+     function poolFee( address factory,
+        address token0,
+        address token1
+    ) external view returns (uint24) ;
 }

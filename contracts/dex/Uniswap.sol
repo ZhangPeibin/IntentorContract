@@ -42,7 +42,7 @@ contract Uniswap is Basedex, ReentrancyGuard {
                 .ExactInputSingleParams({
                     tokenIn: inputToken,
                     tokenOut: outputToken,
-                    fee: poolFee,
+                    fee: swapParam.poolFee,
                     recipient: address(this),
                     amountIn: swapParam.amountIn,
                     amountOutMinimum: swapParam.amountOutMinimum,
@@ -65,7 +65,7 @@ contract Uniswap is Basedex, ReentrancyGuard {
                 .ExactOutputSingleParams({
                     tokenIn: inputToken,
                     tokenOut: outputToken,
-                    fee: poolFee,
+                    fee: swapParam.poolFee,
                     recipient: address(this),
                     amountOut: swapParam.amountOutMinimum,
                     amountInMaximum: swapParam.amountIn,

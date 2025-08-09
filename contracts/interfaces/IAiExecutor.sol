@@ -1,9 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./IIntentRequest.sol";
 import "./IFee.sol";
 interface IAiExecutor {
+
+    enum DEX {
+        UNI
+    }
+
+    struct IntentReq {
+        uint256 amount;  // 32bytes
+        uint256 amountMinout; //32 bytes
+
+        address fromToken; // 20 bytes
+        address toToken; // 20 bytes
+        
+        uint24 poolFee;
+        uint32 chainId; //  4bytes
+        bool exactInput; // 1bytes
+        DEX dex ; // 1bytes
+    }
+
     enum ValidationResult {
         INSUFFICIENT_BALANCE,
         ALLOWANCE_NOT_ENOUGH,
@@ -19,7 +36,7 @@ interface IAiExecutor {
 
     event ExecuteValidateFailed(
         address indexed executor,
-        IIntentRequest.IntentReq intentReq,
+        IntentReq intentReq,
         ValidationResult result
     );
 
@@ -32,10 +49,10 @@ interface IAiExecutor {
     event DexRouterUpdated(
         address indexed oldRouter,
         address indexed newRouter,
-        bytes32 key
+        DEX indexed key
     );
 
-    event DexRouterRemoved(address oldRouter, bytes32 indexed dexKey);
+    event DexRouterRemoved(address oldRouter, DEX indexed dex);
 
 
     event Executed(
@@ -47,22 +64,12 @@ interface IAiExecutor {
         address refundTo
     );
 
-    function fee() external view returns (IFee);
 
     function execute(
-        IIntentRequest.IntentReq memory intentReq
+        IntentReq memory intentReq
     ) external payable returns (uint256 amount);
 
-    function validate(
-        IIntentRequest.IntentReq memory intentReq,
-        uint256 msgValue
-    ) external view returns (bool success, ValidationResult result);
+    function addDexRouter(DEX dex, address router) external;
+    function removeDexRouter(DEX dex) external;
 
-
-
-    function addDexRouter(string calldata dex, address router) external;
-    function removeDexRouter(string calldata dex) external;
-    function getRouterByDex(
-        string calldata dex
-    ) external view returns (address);
 }

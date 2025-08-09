@@ -5,93 +5,124 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "../interfaces/IBaseQuoter.sol";
 import "../interfaces/IUniQuoter.sol";
+import "../util/Errors.sol";
+import "./Pool.sol";
+import "../Fee.sol";
 
 contract Quoter is IBaseQuoter, Ownable {
+    struct DexInfo {
+        address quoter;
+        address factory;
+    }
+
     bytes32 private constant UNI = keccak256(abi.encodePacked("uni"));
 
-    mapping(bytes => address) public dexToQuoter;
-
+    mapping(bytes32 => DexInfo) public dexInfos;
     constructor(address admin) Ownable(admin) {}
-    
 
     function quoteExactInput(
-        QuoterParams memory params
-    ) external override returns (uint256 amountOut) {
-        require(params.tokenIn != address(0), "TokenIn cannot be zero");
-        require(params.tokenOut != address(0), "TokenOut cannot be zero");
-        bytes memory key = abi.encodePacked(params.dex);
-        address quoter = dexToQuoter[key];
-        require(quoter != address(0), "Quoter not found for dex");
+        QuoterParams calldata params
+    ) external override returns (uint256 amountOut, uint24 poolFee) {
+        if (params.tokenIn == address(0)) revert Errors.EmptyToken0();
+        if (params.tokenOut == address(0)) revert Errors.EmptyToken1();
 
-        if (UNI == keccak256(key)) {
+        DexInfo memory dexInfo = dexInfos[params.dex];
+        if (dexInfo.quoter == address(0)) revert Errors.EmptyQuoter();
+        if (dexInfo.factory == address(0)) revert Errors.EmptyFactory();
+
+        if (UNI == params.dex) {
+
+            poolFee = _poolFee(
+                dexInfo.factory,
+                params.tokenIn,
+                params.tokenOut
+            );
             try
-                IUniQuoter(quoter).quoteExactInputSingle(
+                IUniQuoter(dexInfo.quoter).quoteExactInputSingle(
                     IUniQuoter.QuoteExactInputSingleParams({
                         tokenIn: params.tokenIn,
                         tokenOut: params.tokenOut,
                         amountIn: params.amount,
-                        fee: params.fee,
+                        fee: poolFee,
                         sqrtPriceLimitX96: 0
                     })
                 )
             returns (uint256 _amountOut, uint160, uint32, uint256) {
                 amountOut = _amountOut;
-            } catch {
-                revert("Quote failed");
+            } catch (bytes memory data) {
+                revert(string(data));
             }
-        }else {
-            revert UnSupportDex();
+        } else {
+            revert Errors.UnSupportedDex();
         }
-        return amountOut;
+        return (amountOut, poolFee);
     }
 
     function quoteExactOutput(
-        QuoterParams memory params
-    ) external override returns (uint256 amountIn) {
-        require(params.tokenIn != address(0), "TokenIn cannot be zero");
-        require(params.tokenOut != address(0), "TokenOut cannot be zero");
+        QuoterParams calldata params
+    ) external override returns (uint256 amountIn, uint24 poolFee) {
+        if (params.tokenIn == address(0)) revert Errors.EmptyToken0();
+        if (params.tokenOut == address(0)) revert Errors.EmptyToken1();
 
-        bytes memory key = abi.encodePacked(params.dex);
-        address quoter = dexToQuoter[key];
-        require(quoter != address(0), "Quoter not found for dex");
+        DexInfo memory dexInfo = dexInfos[params.dex];
+        if (dexInfo.quoter == address(0)) revert Errors.EmptyQuoter();
+        if (dexInfo.factory == address(0)) revert Errors.EmptyFactory();
 
-        if (UNI == keccak256(key)) {
+        if (UNI == params.dex) {
+            poolFee = poolFee(
+                dexInfo.factory,
+                params.tokenIn,
+                params.tokenOut
+            );
             try
-                IUniQuoter(quoter).quoteExactOutputSingle(
+                IUniQuoter(dexInfo.quoter).quoteExactOutputSingle(
                     IUniQuoter.QuoteExactOutputSingleParams({
                         tokenIn: params.tokenIn,
                         tokenOut: params.tokenOut,
                         amount: params.amount,
-                        fee: params.fee,
+                        fee: poolFee,
                         sqrtPriceLimitX96: 0
                     })
                 )
             returns (uint256 _amountIn, uint160, uint32, uint256) {
                 amountIn = _amountIn;
-            } catch {
-                revert("Quote failed");
+            } catch (bytes memory data) {
+                revert(string(data));
             }
-        }else {
-            revert UnSupportDex();
+        } else {
+            revert Errors.UnSupportedDex();
         }
-        return amountIn;
+        return (amountIn, poolFee);
     }
 
-    function updateQuoter(
-        string calldata dex,
-        address quoter
+    function setDexInfo(
+        bytes32 dex,
+        address quoter,
+        address factory
     ) external override onlyOwner {
-        require(bytes(dex).length != 0, "Dex  cannot be zero");
-        require(quoter != address(0), "Quoter address cannot be zero");
-        bytes memory key = abi.encodePacked(dex);
-        dexToQuoter[key] = quoter;
+        if (quoter == address(0)) revert Errors.EmptyQuoter();
+        if (factory == address(0)) revert Errors.EmptyFactory();
+        DexInfo memory dexInfo = DexInfo({quoter: quoter, factory: factory});
+        dexInfo.quoter = quoter;
+        dexInfos[dex] = dexInfo;
         emit QuoterUpdated(quoter, dex);
     }
 
-    function quoterFromDex(
-        string calldata dex
-    ) external view override returns (address quoter) {
-        bytes memory key = abi.encodePacked(dex);
-        quoter = dexToQuoter[key];
+
+    function poolFee(  address factory,
+        address token0,
+        address token1
+    ) external view returns (uint24) {
+        return _poolFee(factory, token0, token1);
+    }
+
+    function _poolFee(
+        address factory,
+        address token0,
+        address token1
+    ) internal view returns (uint24) {
+        (address pool, uint24 fee) = Pool.getPool(factory, token0, token1);
+        if (pool == address(0)) revert Errors.PoolNotFound();
+        return fee;
     }
 }
