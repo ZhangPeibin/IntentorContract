@@ -1,14 +1,14 @@
 import { ethers } from "hardhat";
 import { dex } from "../typechain-types/contracts";
 
-const uniQuoter = "0xA4aa4849A8782e8768C4ba25dc4eFa1F86b7F1B9"  
+const uniQuoter = "0xA4aa4849A8782e8768C4ba25dc4eFa1F86b7F1B9"
 const AI_EXECUTOR = '0x9495E5bD1f23b05Af64DDcd040FD1f2805300701'
 
 async function exactInput() {
     const [user] = await ethers.getSigners();
     console.log("👤 User Address:", user.address);
     const AISwap = await ethers.getContractAt("AiExecutor", AI_EXECUTOR);
- 
+
     const amount = ethers.parseEther("1"); // 0.1 USDT
     const token0 = "0x55d398326f99059ff775485246999027b3197955";
     const token1 = "0xba2ae424d960c26247dd6c32edc70b295c744c43";
@@ -58,14 +58,39 @@ async function exactInput() {
     }
 
     console.log("🔄 Swap Parameters:", swapParams);
-    const txt = await AISwap.execute(swapParams,{gasLimit: 5000000});
+    const txt = await AISwap.execute(swapParams, { gasLimit: 5000000 });
     const receipt = await txt.wait();
     console.log("✅ Swap Transaction Hash:", receipt);
 }
 
+async function exactOutput() {
+    const [user] = await ethers.getSigners();
+    console.log("👤 User Address:", user.address);
+    const AISwap = await ethers.getContractAt("AiExecutor", AI_EXECUTOR);
+
+  
+    const swapParams = {
+        amount: '2450532960857586902', // 1 USDT
+        amountMinout:'1000000000', // 最小输出金额
+        fromToken: '0x55d398326f99059ff775485246999027b3197955', // USDT    
+        toToken: '0xba2ae424d960c26247dd6c32edc70b295c744c43', // doge
+        refundTo: user.address, // 退款地址
+        poolFee: 10000, // 池子费用
+        chainId: 56, // BSC Chain ID
+        exactInput: false, // 精确输入
+        dex: 0
+    }
+
+    console.log("🔄 Swap Parameters:", swapParams);
+    const txt = await AISwap.execute(swapParams, { gasLimit: 5000000 });
+    const receipt = await txt.wait();
+    console.log("✅ Swap Transaction Hash:", receipt);
+
+}
+
 
 // 入口
-exactInput().catch((error) => {
+exactOutput().catch((error) => {
     console.error("❌ Error:", error);
     process.exitCode = 1;
 });
