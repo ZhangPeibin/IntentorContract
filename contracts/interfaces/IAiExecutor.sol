@@ -2,23 +2,17 @@
 pragma solidity ^0.8.28;
 
 import "./IFee.sol";
+import  "../lib/Enum.sol";
 interface IAiExecutor {
-
-    enum DEX {
-        UNI
-    }
-
     struct IntentReq {
-        uint256 amount;  // 32bytes
+        uint256 amount; // 32bytes
         uint256 amountMinout; //32 bytes
-
         address fromToken; // 20 bytes
         address toToken; // 20 bytes
-        
         uint24 poolFee;
         uint32 chainId; //  4bytes
         bool exactInput; // 1bytes
-        DEX dex ; // 1bytes
+        Enum.DEX dex; // 1bytes
     }
 
     enum ValidationResult {
@@ -49,11 +43,10 @@ interface IAiExecutor {
     event DexRouterUpdated(
         address indexed oldRouter,
         address indexed newRouter,
-        DEX indexed key
+        Enum.DEX indexed key
     );
 
-    event DexRouterRemoved(address oldRouter, DEX indexed dex);
-
+    event DexRouterRemoved(address oldRouter, Enum.DEX indexed dex);
 
     event Executed(
         address indexed user,
@@ -64,12 +57,10 @@ interface IAiExecutor {
         address refundTo
     );
 
-
     function execute(
         IntentReq memory intentReq
     ) external payable returns (uint256 amount);
 
-    function addDexRouter(DEX dex, address router) external;
-    function removeDexRouter(DEX dex) external;
-
+    function addDexRouter(Enum.DEX dex, address router) external;
+    function removeDexRouter(Enum.DEX dex) external;
 }

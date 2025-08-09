@@ -98,12 +98,12 @@ async function main() {
     }
 
     // config AIExecutor 
-    await aiExecutor.addDexRouter('uni',UniSwap.target)
+    await aiExecutor.addDexRouter(0,UniSwap.target)
     console.log("✅ AIExecutor added Dex Router:", UniSwap.target);
-    const dexRouter = await aiExecutor.getRouterByDex('uni');
+    const dexRouter = await aiExecutor.dexToRouter(0);
     console.log("✅ AIExecutor Dex Router:", dexRouter);
 
-    await saveAiExecutorConfig(Number(chainId), aiExecutor.target);
+    await saveAiExecutorConfig(Number(chainId), aiExecutor.target as string);
 }
 
 async function updateAiExecutor() {

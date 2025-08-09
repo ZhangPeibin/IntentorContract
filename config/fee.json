@@ -1,10 +1,11 @@
 {
   "56": {
-    "fee": "0x7683d565c37dc7e9875Ee86E9f3F4996b4d7E284",
+    "fee": "0x8247d324a0F8eF218b094b759C13D034Cfc7efAE",
+    "feeRecipient": "0xeaDd93d2a80D31519ae058298fb01b8d78F77466",
     "isConfigExecutor": true
   },
   "31337": {
-    "fee": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-    "isConfigExecutor": true
+    "fee": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "feeRecipient": "0xeaDd93d2a80D31519ae058298fb01b8d78F77466"
   }
 }

@@ -1,10 +1,10 @@
 {
   "56": {
-    "quoter": "0xdEb8DeA3Bb5C212C90C20E283a7Cb5e73301d969",
-    "isConfigRouter": true
+    "quoter": "0xA4aa4849A8782e8768C4ba25dc4eFa1F86b7F1B9",
+    "uniQuoter": "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
+    "uniFactory": "0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7"
   },
   "31337": {
-    "quoter": "0x70e0bA845a1A0F2DA3359C97E0285013525FFC49",
-    "isConfigRouter": true
+    "quoter": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
   }
 }

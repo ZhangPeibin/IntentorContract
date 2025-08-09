@@ -8,7 +8,8 @@ import "./interfaces/IFee.sol";
 import "./interfaces/IAiExecutor.sol";
 import "./lib/TransferHelper.sol";
 import "./interfaces/IDex.sol";
-import "./util/Errors.sol";
+import "./lib/Errors.sol";
+import "./lib/Enum.sol";
 
 contract AiExecutor is
     IAiExecutor,
@@ -17,7 +18,7 @@ contract AiExecutor is
 {
     IFee public fee;
 
-    mapping(DEX => address) public dexToRouter;
+    mapping(Enum.DEX => address) public dexToRouter;
 
     function __AIExecutor_init(
         address admin,
@@ -42,10 +43,11 @@ contract AiExecutor is
         uint256 amount = req.amount;
         if (amount == 0) revert Errors.ZeroAmount();
 
-        (uint256 feeAmount, uint256 restAmount, address feeRecipient) = _calculateFee(
-            token0,
-            amount
-        );
+        (
+            uint256 feeAmount,
+            uint256 restAmount,
+            address feeRecipient
+        ) = _calculateFee(token0, amount);
 
         uint256 value = 0;
         if (token0 == address(0)) {
@@ -54,6 +56,7 @@ contract AiExecutor is
             value = msg.value - feeAmount;
         } else {
             _transferERC20Tokens(token0, amount, feeAmount, feeRecipient);
+            TransferHelper.safeApprove(token0, router, restAmount);
         }
 
         IDex.SwapParam memory swapParam = IDex.SwapParam({
@@ -68,7 +71,14 @@ contract AiExecutor is
 
         fee.updateUserNonce(msg.sender);
         amount = IDex(router).swap{value: value}(swapParam);
-        emit Executed(msg.sender, token0, token1, restAmount, amount, msg.sender);
+        emit Executed(
+            msg.sender,
+            token0,
+            token1,
+            restAmount,
+            amount,
+            msg.sender
+        );
         return amount;
     }
 
@@ -98,15 +108,19 @@ contract AiExecutor is
             amount
         );
         TransferHelper.safeTransfer(token0, feeRecipient, feeAmount);
+       
     }
 
-    function addDexRouter(DEX dex, address router) external override onlyOwner {
+    function addDexRouter(
+        Enum.DEX dex,
+        address router
+    ) external override onlyOwner {
         address oldRouter = dexToRouter[dex];
         dexToRouter[dex] = router;
         emit DexRouterUpdated(oldRouter, router, dex);
     }
 
-    function removeDexRouter(DEX dex) external override onlyOwner {
+    function removeDexRouter(Enum.DEX dex) external override onlyOwner {
         address oldRouter = dexToRouter[dex];
         delete dexToRouter[dex];
         emit DexRouterRemoved(oldRouter, dex);

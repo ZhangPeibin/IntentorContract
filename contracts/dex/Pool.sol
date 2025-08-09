@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 import "../interfaces/IUniswapV3Factory.sol";
+import "../interfaces/IUniswapPool.sol";
 
 library Pool {
     uint256 constant FEE_LENGTH = 4;
@@ -14,7 +15,7 @@ library Pool {
         address factory,
         address tokenA,
         address tokenB
-    ) external view returns (address pool, uint24 fee) {
+    ) internal view returns (address pool, uint24 poolFee) {
         uint24[FEE_LENGTH] memory fees = [
             FEE_DEFAULT,
             FEE_MEDIUM,
@@ -24,16 +25,22 @@ library Pool {
         (address token0, address token1) = tokenA < tokenB
             ? (tokenA, tokenB)
             : (tokenB, tokenA);
+        uint128 liquidity;
         for (uint256 index = 0; index < FEE_LENGTH; index++) {
-            pool = IUniswapV3Factory(factory).getPool(
+            address _pool = IUniswapV3Factory(factory).getPool(
                 token0,
                 token1,
                 fees[index]
             );
-            if (pool != address(0)) {
-                return (pool, fees[index]);
+
+            if (_pool != address(0)) {
+                uint128 _liquidity = IUniswapPool(_pool).liquidity();
+                if (_liquidity > liquidity) {
+                    pool = _pool;
+                    liquidity = _liquidity;
+                    poolFee = fees[index];
+                }
             }
         }
-        return (address(0), 0);
     }
 }

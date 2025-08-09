@@ -1,6 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import fs from "fs";
 import path from "path";
+import { assert } from "console";
 
 
 
@@ -37,6 +38,9 @@ async function main() {
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   console.log(`📄 Fee address saved under chainId ${chainId} at: ${configPath}`);
+
+  
+  await configfee();
 }
 
 async function updateFee() {
@@ -85,11 +89,19 @@ async function configfee() {
     return;
   }
   const fee = await ethers.getContractAt("Fee", feeAddress);
-  await fee.setEtherFee(ethers.parseEther("0.00001"));
-  await fee.setFeeRecipient("0xeadd93d2a80d31519ae058298fb01b8d78f77466"); //okx wallet 2 
+  const target = "0xeadd93d2a80d31519ae058298fb01b8d78f77466";
+  // await fee.setNativeTokenFee(ethers.parseEther("0.00001"));
+  await fee.setFeeRecipient(target); //okx wallet 2 
+  const feeRecipient = await fee.feeRecipient();
+  console.log(`✅ Fee recipient set to: ${feeRecipient}`);
+  assert(feeRecipient.toLowerCase() === target.toLowerCase(), "Fee recipient not set correctly");
+  config[chainId.toString()] = { fee: feeAddress , feeRecipient: feeRecipient };
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  console.log(`📄 Fee address saved under chainId ${chainId} at: ${configPath}`);
+
 }
 
-updateFee().catch((error) => {
+main().catch((error) => {
   console.error("❌ Deployment failed:", error);
   process.exit(1);
 });

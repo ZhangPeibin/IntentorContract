@@ -3,21 +3,20 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "../interfaces/IBaseQuoter.sol";
+import "../interfaces/IQuoter.sol";
 import "../interfaces/IUniQuoter.sol";
-import "../util/Errors.sol";
+import "../lib/Errors.sol";
+import "../lib/Enum.sol";
 import "./Pool.sol";
 import "../Fee.sol";
 
-contract Quoter is IBaseQuoter, Ownable {
+contract Quoter is IQuoter, Ownable {
     struct DexInfo {
         address quoter;
         address factory;
     }
 
-    bytes32 private constant UNI = keccak256(abi.encodePacked("uni"));
-
-    mapping(bytes32 => DexInfo) public dexInfos;
+    mapping(Enum.DEX => DexInfo) public dexInfos;
     constructor(address admin) Ownable(admin) {}
 
     function quoteExactInput(
@@ -30,8 +29,7 @@ contract Quoter is IBaseQuoter, Ownable {
         if (dexInfo.quoter == address(0)) revert Errors.EmptyQuoter();
         if (dexInfo.factory == address(0)) revert Errors.EmptyFactory();
 
-        if (UNI == params.dex) {
-
+        if ( Enum.DEX.UNI == params.dex) {
             poolFee = _poolFee(
                 dexInfo.factory,
                 params.tokenIn,
@@ -68,8 +66,8 @@ contract Quoter is IBaseQuoter, Ownable {
         if (dexInfo.quoter == address(0)) revert Errors.EmptyQuoter();
         if (dexInfo.factory == address(0)) revert Errors.EmptyFactory();
 
-        if (UNI == params.dex) {
-            poolFee = poolFee(
+        if ( Enum.DEX.UNI == params.dex) {
+            poolFee = _poolFee(
                 dexInfo.factory,
                 params.tokenIn,
                 params.tokenOut
@@ -96,7 +94,7 @@ contract Quoter is IBaseQuoter, Ownable {
     }
 
     function setDexInfo(
-        bytes32 dex,
+        Enum.DEX dex,
         address quoter,
         address factory
     ) external override onlyOwner {
@@ -108,8 +106,8 @@ contract Quoter is IBaseQuoter, Ownable {
         emit QuoterUpdated(quoter, dex);
     }
 
-
-    function poolFee(  address factory,
+    function poolFee(
+        address factory,
         address token0,
         address token1
     ) external view returns (uint24) {

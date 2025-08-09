@@ -2,19 +2,10 @@
   "56": {
     "chainId": 56,
     "network": "bsc",
-    "address": "0x02b5E1cDd2163fF08551F82EfC21FcA5eD720E51",
+    "address": "0x75ea460f210E1382d0495C8f43Ab4fF140Cdf2df",
     "router": "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
     "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    "deployedAt": "2025-06-18T13:20:47.313Z",
-    "isConfigExecutor": true
-  },
-  "31337": {
-    "chainId": 31337,
-    "network": "localhost",
-    "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-    "router": "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
-    "wbnb": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    "deployedAt": "2025-06-18T06:38:09.020Z",
+    "deployedAt": "2025-08-09T03:35:41.744Z",
     "isConfigExecutor": true
   }
 }
