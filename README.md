@@ -1,13 +1,35 @@
-# Sample Hardhat Project
+# Intentor Contracts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+Archived Solidity contracts for routing intent-based EVM swaps through DEX
+adapters while applying configurable fees.
 
-Try running some of the following tasks:
+> **Status:** Archived in August 2025. The contracts are experimental,
+> unaudited, and must not be used with production funds.
 
-```shell
-npx hardhat help
+## Contracts
+
+| Path | Purpose |
+| --- | --- |
+| `contracts/AiExecutor.sol` | Validates requests, collects fees, and dispatches swaps |
+| `contracts/Fee.sol` | Upgradeable fee configuration and accounting |
+| `contracts/dex/` | DEX router, pool, and quote adapters |
+| `contracts/interfaces/` | Executor, fee, token, and Uniswap-style interfaces |
+| `scripts/` | Historical BNB Chain deployment and upgrade scripts |
+
+## Development
+
+Requirements: Node.js 20 or newer.
+
+```sh
+npm install
+npx hardhat compile
 npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
 ```
+
+Network deployments require a Hardhat `TEST_PK` variable. Never place a real
+private key in source control.
+
+## License
+
+[MIT](LICENSE). OpenZeppelin and other dependencies retain their upstream
+licenses.
